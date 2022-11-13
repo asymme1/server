@@ -24,7 +24,7 @@ namespace woke3
             }
         }
 
-        protected void OnReceivedInternal(byte[] buffer, long offset, long size)
+        private void OnReceivedInternal(byte[] buffer, long offset, long size)
         {
             var type = (PacketType) BitConverter.ToInt32(buffer[0..4]);
             var len = BitConverter.ToInt32(buffer[4..8]);
