@@ -14,6 +14,18 @@ namespace woke3
 
         protected override void OnReceived(byte[] buffer, long offset, long size)
         {
+            try
+            {
+                OnReceivedInternal(buffer, offset, size);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+            }
+        }
+
+        protected void OnReceivedInternal(byte[] buffer, long offset, long size)
+        {
             var type = (PacketType) BitConverter.ToInt32(buffer[0..4]);
             var len = BitConverter.ToInt32(buffer[4..8]);
             var payload = buffer[8..(8 + len)];
