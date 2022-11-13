@@ -14,7 +14,7 @@ namespace woke3
 
         public GameSession()
         {
-            var n = Random.Shared.Next(10, 100);
+            var n = Random.Shared.Next(10, 20);
             var rnd = n - 2;
             Matrix = new int[n, n];
 
@@ -22,7 +22,7 @@ namespace woke3
             var indexes = new OrderedDictionary();
             foreach (var p in Enumerable.Range(0, n * n - 1))
             {
-                indexes[p] = p;
+                indexes.Add(p, p);
             }
             for (var i = 0; i < rnd; i++)
             {

@@ -5,6 +5,7 @@ Console.WriteLine("Server starting...");
 var server = new GameServer(IPAddress.Any, 9001);
 server.Start();
 Console.WriteLine($"Done! Up on port {9001}.");
+await Task.Delay(-1);
 
 enum PacketType
 {
