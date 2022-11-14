@@ -140,6 +140,7 @@ namespace woke3
             var b = new List<byte[]>
             {
                 BitConverter.GetBytes((int) type),
+                BitConverter.GetBytes(payload.Length),
                 payload
             };
             Send(b.SelectMany(a => a).ToArray());
