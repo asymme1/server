@@ -6,10 +6,12 @@ namespace woke3
     public class GameConnection : TcpSession
     {
         private readonly GameSession session;
+        private readonly GameServer server;
 
-        public GameConnection(TcpServer server, GameSession gameSession) : base(server)
+        public GameConnection(GameServer server, GameSession gameSession) : base(server)
         {
             session = gameSession;
+            this.server = server;
         }
 
         protected override void OnReceived(byte[] buffer, long offset, long size)
@@ -102,6 +104,13 @@ namespace woke3
                         SendBoard(session.Matrix);
                     }
 
+                    break;
+                }
+                case PacketType.PKT_SPECIAL_RESET:
+                {
+                    Console.WriteLine("Resetting session");
+                    server.Session = new GameSession();
+                    Disconnect();
                     break;
                 }
             }

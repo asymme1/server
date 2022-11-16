@@ -9,6 +9,7 @@ await Task.Delay(-1);
 
 enum PacketType
 {
+    PKT_SPECIAL_RESET = -1,
     PKT_HI = 0,
     PKT_ID,
     PKT_BOARD,
