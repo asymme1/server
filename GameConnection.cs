@@ -62,7 +62,7 @@ namespace woke3
                                 BitConverter.GetBytes(1)
                             };
                             Console.WriteLine($"Sent {PacketType.PKT_ID} {session.P1} as {nameof(session.P1)}");
-                            session.P1Connected = true;
+                            // session.P1Connected = true;
                         }   
                     }
                     SendPacket(PacketType.PKT_ID, list.SelectMany(a => a).ToArray());
@@ -119,6 +119,7 @@ namespace woke3
 
         private void SendBoard(int[,] matrix)
         {
+            const int consecutive = 5;
             var n = matrix.GetLength(0);
             var blocked = new List<int>();
             for (var i = 0; i < n; i++)
@@ -133,10 +134,10 @@ namespace woke3
                 BitConverter.GetBytes(n),
                 BitConverter.GetBytes(n),
                 BitConverter.GetBytes(blocked.Count),
-                BitConverter.GetBytes(5),
+                BitConverter.GetBytes(consecutive),
                 blocked.SelectMany(BitConverter.GetBytes)
             };
-            Send(payload.SelectMany(a => a).ToArray());
+            SendPacket(PacketType.PKT_BOARD, payload.SelectMany(a => a).ToArray());
         }
         
         private void SendError()
@@ -146,6 +147,11 @@ namespace woke3
 
         private void SendPacket(PacketType type, byte[] payload)
         {
+            Console.WriteLine($"Sending {type} with payload of length {payload.Length}");
+            Console.WriteLine("Payload : {0}",
+                type != PacketType.PKT_BOARD
+                    ? BitConverter.ToString(payload).Replace("-", " ")
+                    : string.Join(" ", payload.Select(a => a.ToString())));
             var b = new List<byte[]>
             {
                 BitConverter.GetBytes((int) type),
