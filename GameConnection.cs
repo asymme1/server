@@ -62,8 +62,8 @@ namespace woke3
                                 BitConverter.GetBytes(1)
                             };
                             Console.WriteLine($"Sent {PacketType.PKT_ID} {session.P1} as {nameof(session.P1)}");
-                            // session.P1Connected = true;
-                        }   
+                            session.P1Connected = true;
+                        }
                     }
                     SendPacket(PacketType.PKT_ID, list.SelectMany(a => a).ToArray());
                     lock (session.Matrix)
