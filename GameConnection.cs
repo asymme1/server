@@ -101,6 +101,8 @@ namespace woke3
 
                         matrix[row, col] = id;
                         Console.WriteLine($"Marking {row}, {col} belong to player {id}");
+                        var receivePacket = BitConverter.GetBytes(row * n * col);
+                        SendPacket(PacketType.PKT_RECEIVE, receivePacket);
                         SendBoard(session.Matrix);
                     }
 

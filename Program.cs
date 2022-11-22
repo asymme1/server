@@ -14,6 +14,7 @@ enum PacketType
     PKT_ID,
     PKT_BOARD,
     PKT_SEND,
+    PKT_RECEIVE,
     PKT_ERROR,
     PKT_END
 }
