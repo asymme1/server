@@ -94,14 +94,14 @@ namespace woke3
                             session.P1Connected = true;
                             session.P1Id = Id;
                         }
+                        SendPacket(PacketType.PKT_ID, list.SelectMany(a => a).ToArray());
 
                         if (session.P1Connected && session.P2Connected)
                         {
                             session.MatchStarted = true;
+                            SendBoard(session.Matrix);
                         }
                     }
-                    SendPacket(PacketType.PKT_ID, list.SelectMany(a => a).ToArray());
-
                     break;
                 }
                 case PacketType.PKT_SEND:
@@ -139,9 +139,7 @@ namespace woke3
 
                         matrix[row, col] = (int)id;
                         Console.WriteLine($"Marking {row}, {col} belong to player {id}");
-                        var receivePacket = BitConverter.GetBytes(row * n * col);
-                        SendPacket(PacketType.PKT_RECEIVE, receivePacket, true);
-                        
+                        SendReceive(pos);
                     }
 
                     break;
@@ -177,13 +175,19 @@ namespace woke3
                 BitConverter.GetBytes(consecutive),
                 blocked.SelectMany(BitConverter.GetBytes)
             };
-            SendPacket(PacketType.PKT_BOARD, payload.SelectMany(a => a).ToArray());
+            SendPacket(PacketType.PKT_BOARD, payload.SelectMany(a => a).ToArray(), true);
         }
 
         private void SendReceive(int pos)
         {
-            var payload = BitConverter.GetBytes(pos);
-            SendPacket(PacketType.PKT_RECEIVE, payload.ToArray());
+            var b = new List<byte[]>
+            {
+                BitConverter.GetBytes((int) PacketType.PKT_RECEIVE),
+                BitConverter.GetBytes(4),
+                BitConverter.GetBytes(pos)
+            };
+            server.FindSession(session.P1Turn ? session.P2Id : session.P1Id).Send(b.SelectMany(a => a).ToArray());
+            session.P1Turn = !session.P1Turn;
         }
         
         private void SendError()

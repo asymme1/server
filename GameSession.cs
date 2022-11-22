@@ -9,6 +9,7 @@ namespace woke3
         public readonly int P2 = Random.Shared.Next();
         public Guid P1Id { get; set; }
         public Guid P2Id { get; set; }
+        public bool P1Turn { get; set; } = true;
 
         public bool P1Connected { get; set; } = false;
         public bool P2Connected { get; set; } = false;
