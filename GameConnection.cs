@@ -102,7 +102,7 @@ namespace woke3
                         matrix[row, col] = id;
                         Console.WriteLine($"Marking {row}, {col} belong to player {id}");
                         var receivePacket = BitConverter.GetBytes(row * n * col);
-                        SendPacket(PacketType.PKT_RECEIVE, receivePacket);
+                        SendPacket(PacketType.PKT_RECEIVE, receivePacket, true);
                         SendBoard(session.Matrix);
                     }
 
@@ -147,7 +147,7 @@ namespace woke3
             Send(BitConverter.GetBytes((int)PacketType.PKT_ERROR));
         }
 
-        private void SendPacket(PacketType type, byte[] payload)
+        private void SendPacket(PacketType type, byte[] payload, bool multicast = false)
         {
             Console.WriteLine($"Sending {type} with payload of length {payload.Length}");
             Console.WriteLine("Payload : {0}",
@@ -160,7 +160,15 @@ namespace woke3
                 BitConverter.GetBytes(payload.Length),
                 payload
             };
-            Send(b.SelectMany(a => a).ToArray());
+            var final = b.SelectMany(a => a).ToArray();
+            if (!multicast)
+            {
+                Send(final);
+            }
+            else
+            {
+                server.Multicast(final);
+            }
         }
     }
 }
