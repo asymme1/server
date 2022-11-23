@@ -1,4 +1,5 @@
 using System.Collections.Specialized;
+using System.Net;
 using NetCoreServer;
 
 namespace woke3
@@ -57,9 +58,7 @@ namespace woke3
             var type = (PacketType) BitConverter.ToInt32(buffer[0..4]);
             var len = BitConverter.ToInt32(buffer[4..8]);
             var payload = buffer[8..(8 + len)];
-            for (int i = 0; i < 8 + len; ++i) Console.Write(buffer[i] + " ");
-            Console.WriteLine();
-            
+
             switch (type)
             {
                 case PacketType.PKT_HI:
@@ -99,7 +98,17 @@ namespace woke3
                         if (session.P1Connected && session.P2Connected)
                         {
                             session.MatchStarted = true;
-                            SendBoard(session.Matrix);
+                            // sleep thread for 10 second
+                            new Thread(() =>
+                            {
+                                Thread.Sleep(10000);
+                                lock (session)
+                                {
+                                    Console.WriteLine("Send board to both players");
+                                    SendBoard(session.Matrix);
+                                }
+                            }).Start();
+                            //SendBoard(session.Matrix);
                         }
                     }
                     break;
