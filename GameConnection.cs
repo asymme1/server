@@ -33,7 +33,7 @@ namespace woke3
                     session.MatchStarted = false;
                     Console.WriteLine(session.P1Id == Id ? "Player 1 disconnected. Player 2 wins" : "Player 2 disconnected. Player 1 wins");
 
-                    SendPacket(PacketType.PKT_END, new byte[] {0}, true);
+                    SendPacket(PacketType.PKT_END, BitConverter.GetBytes(session.P1Id == Id ? session.P2 : session.P1), true);
                     server.Session = new GameSession();
                     Disconnect();
                 }
@@ -117,12 +117,19 @@ namespace woke3
                             // let it pass
                             break;
                         }
+                        
+                        if ((id == session.P1 && !session.P1Turn) || (id == session.P2 && session.P1Turn))
+                        {
+                            Console.WriteLine("Wrong turn !!! Ignore it");
+                            break;
+                        }
 
                         var pos = BitConverter.ToInt32(payload[4..8]);
                         var matrix = session.Matrix;
-                        var n = matrix.GetLength(0);
+                        var m = matrix.GetLength(0);
+                        var n = matrix.Length / matrix.GetLength(0);
                         int row = pos / n, col = pos % n;
-                        if (row < 0 || row > n - 1 || col < 0 || row > n - 1)
+                        if (row < 0 || row > m - 1 || col < 0 || col > n - 1)
                         {
                             Console.WriteLine($"Invalid {row}, {col}, rejecting");
                             SendError();
@@ -138,8 +145,20 @@ namespace woke3
                         }
 
                         matrix[row, col] = (int)id;
-                        Console.WriteLine($"Marking {row}, {col} belong to player {id}");
-                        SendReceive(pos);
+                        int winner = session.CheckWinner();
+                        if (winner != -1)
+                        {
+                            session.MatchStarted = false;
+                            Console.WriteLine($"Player {winner} wins");
+                            SendPacket(PacketType.PKT_END, BitConverter.GetBytes(winner), true);
+                            server.Session = new GameSession();
+                            Disconnect();
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Marking {row}, {col} belong to player {id}");
+                            SendReceive(pos);
+                        }
                     }
 
                     break;
@@ -157,10 +176,12 @@ namespace woke3
 
         private void SendBoard(int[,] matrix)
         {
-            const int consecutive = 5;
-            var n = matrix.GetLength(0);
+            int consecutive = session.LengthToWin;
+            var n = matrix.Length / matrix.GetLength(0);
+            var m = matrix.GetLength(0);
             var blocked = new List<int>();
-            for (var i = 0; i < n; i++)
+            Console.WriteLine(m + " " + n);
+            for (var i = 0; i < m; i++)
             {
                 for (var k = 0; k < n; k++)
                 {
@@ -170,7 +191,7 @@ namespace woke3
             var payload = new List<IEnumerable<byte>>
             {
                 BitConverter.GetBytes(n),
-                BitConverter.GetBytes(n),
+                BitConverter.GetBytes(m),
                 BitConverter.GetBytes(blocked.Count),
                 BitConverter.GetBytes(consecutive),
                 blocked.SelectMany(BitConverter.GetBytes)
@@ -206,7 +227,7 @@ namespace woke3
             var b = new List<byte[]>
             {
                 BitConverter.GetBytes((int) type),
-                type != PacketType.PKT_END ? BitConverter.GetBytes(payload.Length) : new byte[] {0},
+                BitConverter.GetBytes(payload.Length),
                 payload
             };
             var final = b.SelectMany(a => a).ToArray();
