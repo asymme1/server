@@ -1,4 +1,5 @@
 using System.Collections.Specialized;
+using System.Net;
 using NetCoreServer;
 
 namespace woke3
@@ -8,10 +9,36 @@ namespace woke3
         private readonly GameSession session;
         private readonly GameServer server;
 
-        public GameConnection(GameServer server, GameSession gameSession) : base(server)
+        public GameConnection(GameServer server, GameSession gameSession) : base(server)    
         {
             session = gameSession;
             this.server = server;
+        }
+        
+        protected override void OnConnected()
+        {
+            if (server.ConnectedSessions > 2)
+            {
+                Console.WriteLine("Detect more than 2 clients, disconnecting");
+                SendPacket(PacketType.PKT_END, new byte[] {0}, true);
+                Disconnect();
+            }
+        }
+        
+        protected override void OnDisconnected()
+        {
+            lock (session)
+            {
+                if (session.MatchStarted)
+                {
+                    session.MatchStarted = false;
+                    Console.WriteLine(session.P1Id == Id ? "Player 1 disconnected. Player 2 wins" : "Player 2 disconnected. Player 1 wins");
+
+                    SendPacket(PacketType.PKT_END, BitConverter.GetBytes(session.P1Id == Id ? session.P2 : session.P1), true);
+                    server.Session = new GameSession();
+                    Disconnect();
+                }
+            }
         }
 
         protected override void OnReceived(byte[] buffer, long offset, long size)
@@ -31,7 +58,7 @@ namespace woke3
             var type = (PacketType) BitConverter.ToInt32(buffer[0..4]);
             var len = BitConverter.ToInt32(buffer[4..8]);
             var payload = buffer[8..(8 + len)];
-            
+
             switch (type)
             {
                 case PacketType.PKT_HI:
@@ -53,6 +80,7 @@ namespace woke3
                             };
                             Console.WriteLine($"Sent {PacketType.PKT_ID} {session.P2} as {nameof(session.P2)}");
                             session.P2Connected = true;
+                            session.P2Id = Id;
                         }
                         else
                         {
@@ -63,47 +91,83 @@ namespace woke3
                             };
                             Console.WriteLine($"Sent {PacketType.PKT_ID} {session.P1} as {nameof(session.P1)}");
                             session.P1Connected = true;
+                            session.P1Id = Id;
                         }
-                    }
-                    SendPacket(PacketType.PKT_ID, list.SelectMany(a => a).ToArray());
-                    lock (session.Matrix)
-                    {
-                        SendBoard(session.Matrix);
+                        SendPacket(PacketType.PKT_ID, list.SelectMany(a => a).ToArray());
+
+                        if (session.P1Connected && session.P2Connected)
+                        {
+                            session.MatchStarted = true;
+                            // sleep thread for 10 second
+                            new Thread(() =>
+                            {
+                                Thread.Sleep(10000);
+                                lock (session)
+                                {
+                                    Console.WriteLine("Send board to both players");
+                                    SendBoard(session.Matrix);
+                                }
+                            }).Start();
+                            //SendBoard(session.Matrix);
+                        }
                     }
                     break;
                 }
                 case PacketType.PKT_SEND:
                 {
+                    Console.WriteLine($"{PacketType.PKT_SEND} received");
                     lock (session)
                     {
-                        var id = BitConverter.ToInt32(payload[0..4]);
+                        Console.WriteLine("Payload : {0}", string.Join(" ", payload.Select(a => a.ToString())));
+                        var id = BitConverter.ToUInt32(payload[0..4]);
+                        Console.WriteLine(id);
                         if (id != session.P1 && id != session.P2)
                         {
                             // let it pass
                             break;
                         }
+                        
+                        if ((id == session.P1 && !session.P1Turn) || (id == session.P2 && session.P1Turn))
+                        {
+                            Console.WriteLine("Wrong turn !!! Ignore it");
+                            break;
+                        }
+
                         var pos = BitConverter.ToInt32(payload[4..8]);
                         var matrix = session.Matrix;
-                        var n = matrix.GetLength(0);
+                        var m = matrix.GetLength(0);
+                        var n = matrix.Length / matrix.GetLength(0);
                         int row = pos / n, col = pos % n;
-                        if (row < 0 || row > n - 1 || col < 0 || row > n - 1)
+                        if (row < 0 || row > m - 1 || col < 0 || col > n - 1)
                         {
                             Console.WriteLine($"Invalid {row}, {col}, rejecting");
                             SendError();
                             break;
                         }
-                        if (matrix[row, col] == session.P1 || matrix[row, col] == session.P2 || matrix[row, col] == GameSession.BannedCell)
+
+                        if (matrix[row, col] == session.P1 || matrix[row, col] == session.P2 ||
+                            matrix[row, col] == GameSession.BannedCell)
                         {
                             Console.WriteLine($"{row}, {col} already got marked, rejecting");
                             SendError();
                             break;
                         }
 
-                        matrix[row, col] = id;
-                        Console.WriteLine($"Marking {row}, {col} belong to player {id}");
-                        var receivePacket = BitConverter.GetBytes(row * n * col);
-                        SendPacket(PacketType.PKT_RECEIVE, receivePacket, true);
-                        SendBoard(session.Matrix);
+                        matrix[row, col] = (int)id;
+                        int winner = session.CheckWinner();
+                        if (winner != -1)
+                        {
+                            session.MatchStarted = false;
+                            Console.WriteLine($"Player {winner} wins");
+                            SendPacket(PacketType.PKT_END, BitConverter.GetBytes(winner), true);
+                            server.Session = new GameSession();
+                            Disconnect();
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Marking {row}, {col} belong to player {id}");
+                            SendReceive(pos);
+                        }
                     }
 
                     break;
@@ -121,10 +185,12 @@ namespace woke3
 
         private void SendBoard(int[,] matrix)
         {
-            const int consecutive = 5;
-            var n = matrix.GetLength(0);
+            int consecutive = session.LengthToWin;
+            var n = matrix.Length / matrix.GetLength(0);
+            var m = matrix.GetLength(0);
             var blocked = new List<int>();
-            for (var i = 0; i < n; i++)
+            Console.WriteLine(m + " " + n);
+            for (var i = 0; i < m; i++)
             {
                 for (var k = 0; k < n; k++)
                 {
@@ -134,12 +200,24 @@ namespace woke3
             var payload = new List<IEnumerable<byte>>
             {
                 BitConverter.GetBytes(n),
-                BitConverter.GetBytes(n),
+                BitConverter.GetBytes(m),
                 BitConverter.GetBytes(blocked.Count),
                 BitConverter.GetBytes(consecutive),
                 blocked.SelectMany(BitConverter.GetBytes)
             };
-            SendPacket(PacketType.PKT_BOARD, payload.SelectMany(a => a).ToArray());
+            SendPacket(PacketType.PKT_BOARD, payload.SelectMany(a => a).ToArray(), true);
+        }
+
+        private void SendReceive(int pos)
+        {
+            var b = new List<byte[]>
+            {
+                BitConverter.GetBytes((int) PacketType.PKT_RECEIVE),
+                BitConverter.GetBytes(4),
+                BitConverter.GetBytes(pos)
+            };
+            server.FindSession(session.P1Turn ? session.P2Id : session.P1Id).Send(b.SelectMany(a => a).ToArray());
+            session.P1Turn = !session.P1Turn;
         }
         
         private void SendError()
@@ -154,6 +232,7 @@ namespace woke3
                 type != PacketType.PKT_BOARD
                     ? BitConverter.ToString(payload).Replace("-", " ")
                     : string.Join(" ", payload.Select(a => a.ToString())));
+            Console.WriteLine("Payload {0}", string.Join(" ", payload.Select(a => a.ToString())));
             var b = new List<byte[]>
             {
                 BitConverter.GetBytes((int) type),

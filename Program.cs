@@ -1,10 +1,18 @@
 using System.Net;
 using woke3;
 
-Console.WriteLine("Server starting...");
-var server = new GameServer(IPAddress.Any, 9001);
-server.Start();
-Console.WriteLine($"Done! Up on port {9001}.");
+string WEB_IP = "104.194.240.16";
+int WEB_PORT = 8881;
+
+// Console.WriteLine("Server starting...");
+// var server = new GameServer(IPAddress.Any, 9001);
+// server.Start();
+// Console.WriteLine($"Done! Up on port {9001}.");
+
+Console.WriteLine("Connecting to web server...");
+var client = new ServerSession(WEB_IP, WEB_PORT, null);
+client.Connect();
+Console.WriteLine("Connected to web server!");
 await Task.Delay(-1);
 
 enum PacketType
