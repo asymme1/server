@@ -58,6 +58,14 @@ namespace woke3
             await socket.SendAsync(data, WebSocketMessageType.Binary, true, CancellationToken.None);
     }
 }
+var gameServer = new GameServer(IPAddress.Any, 9001, 9002);
+Console.WriteLine("Connecting to web server...");
+var client = new ServerSession(WEB_IP, WEB_PORT, gameServer);
+client.Connect();
+Console.WriteLine("Connected to web server!");
+gameServer.Start();
+Console.WriteLine("Started game server!");
+await Task.Delay(-1);
 
 enum PacketType
 {
