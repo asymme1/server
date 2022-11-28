@@ -8,11 +8,13 @@ namespace woke3
     {
         private readonly GameSession session;
         private readonly GameServer server;
+        private readonly WsServer? wsServer;
 
-        public GameConnection(GameServer server, GameSession gameSession) : base(server)    
+        public GameConnection(GameServer server, GameSession gameSession, WsServer wsServer) : base(server)    
         {
             session = gameSession;
             this.server = server;
+            this.wsServer = wsServer;
         }
         
         protected override void OnConnected()
