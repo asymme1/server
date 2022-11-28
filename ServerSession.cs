@@ -16,38 +16,50 @@ namespace woke3
         public ServerSession(string address, int port, GameServer server) : base(address, port)
         {
             _server = server;
-            // Send information to Web Server
-            // convert string to byte
         }
-
+        
         public override void OnWsConnecting(HttpRequest request)
         {
-            //base.OnWsConnecting(request);
-            //
+            request.SetBegin("GET", "/");
+            request.SetHeader("Host", "localhost");
+            request.SetHeader("Origin", "http://localhost");
+            request.SetHeader("Upgrade", "websocket");
+            request.SetHeader("Connection", "Upgrade");
+            request.SetHeader("Sec-WebSocket-Key", Convert.ToBase64String(WsNonce));
+            request.SetHeader("Sec-WebSocket-Protocol", "binary.ircv3.net");
+            request.SetHeader("Sec-WebSocket-Version", "13");
+            request.SetBody();
         }
 
         protected override void OnConnected()
         {
+            Console.WriteLine("Connected with ID: " + Id);
             //sleep thread for 5 seconds and send message to web server
             
             new Thread(() =>
             {
-                Thread.Sleep(5000);
-                var info = new List<byte[]>()
+                Thread.Sleep(1000);
+                lock (this)
                 {
-                    BitConverter.GetBytes(GAME_SERVER_ADDRESS.Length),
-                    Encoding.ASCII.GetBytes(GAME_SERVER_ADDRESS),
-                    BitConverter.GetBytes(GAME_SERVER_PORT),
-                    BitConverter.GetBytes(_game_name.Length),
-                    Encoding.ASCII.GetBytes(_game_name),
-                    BitConverter.GetBytes(2),
-                    Encoding.ASCII.GetBytes("aa"),
-                    BitConverter.GetBytes(2),
-                    Encoding.ASCII.GetBytes("bb")
-                };
-                Console.WriteLine("Send info to web server");
-                SendPacket(1, info.SelectMany(a => a).ToArray());
+                    var info = new List<byte[]>()
+                    {
+                        BitConverter.GetBytes(GAME_SERVER_ADDRESS.Length),
+                        Encoding.ASCII.GetBytes(GAME_SERVER_ADDRESS),
+                        BitConverter.GetBytes(GAME_SERVER_PORT),
+                        BitConverter.GetBytes(_game_name.Length),
+                        Encoding.ASCII.GetBytes(_game_name),
+                        BitConverter.GetBytes(2),
+                        Encoding.ASCII.GetBytes("aa"),
+                        BitConverter.GetBytes(2),
+                        Encoding.ASCII.GetBytes("bb")
+                    };
+                    Console.WriteLine("Send info to web server");
+                    Console.WriteLine(SendPacket(1, info.SelectMany(a => a).ToArray()));
+                }
+
+                
             }).Start();
+            base.OnConnected();
         }
 
         public override void OnWsReceived(byte[] buffer, long offset, long size)
@@ -77,6 +89,7 @@ namespace woke3
                     Console.WriteLine(error);
                 }
             }
+            base.OnWsReceived(buffer, offset, size);
         }
 
         private bool SendPacket(int action, byte[] payload)
@@ -87,7 +100,9 @@ namespace woke3
                 payload
             };
             var packet = data.SelectMany(a => a).ToArray();
-            return Send(packet) == packet.Length;
+            long sent = SendBinary(packet);
+            Console.WriteLine(sent + " " + packet.Length);
+            return sent == packet.Length;
             // print packet
         }
     }

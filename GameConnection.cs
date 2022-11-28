@@ -103,7 +103,7 @@ namespace woke3
                             // sleep thread for 10 second
                             new Thread(() =>
                             {
-                                Thread.Sleep(10000);
+                                Thread.Sleep(5000);
                                 lock (session)
                                 {
                                     Console.WriteLine("Send board to both players");
