@@ -13,7 +13,7 @@ namespace woke3
         private static readonly int GAME_SERVER_PORT = 11377;
         private static string _game_name = "Tictactoe";
         private static string _team_name = "tm45";
-        private static GameServer _server;
+        private static GameServer gameServer;
 
         public static async Task Main(string[] args)
         {
@@ -51,6 +51,14 @@ namespace woke3
                 //     var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
                 //     Console.WriteLine(message);
                 // }
+                gameServer = new GameServer(IPAddress.Any, 9001, 9002);
+                Console.WriteLine("Connecting to web server...");
+                var client = new ServerSession(WEB_IP, WEB_PORT, gameServer);
+                client.Connect();
+                Console.WriteLine("Connected to web server!");
+                gameServer.Start();
+                Console.WriteLine($"Started game server on port {9001}!");
+                await Task.Delay(-1);
             }
         }
         
@@ -58,14 +66,6 @@ namespace woke3
             await socket.SendAsync(data, WebSocketMessageType.Binary, true, CancellationToken.None);
     }
 }
-var gameServer = new GameServer(IPAddress.Any, 9001, 9002);
-Console.WriteLine("Connecting to web server...");
-var client = new ServerSession(WEB_IP, WEB_PORT, gameServer);
-client.Connect();
-Console.WriteLine("Connected to web server!");
-gameServer.Start();
-Console.WriteLine("Started game server!");
-await Task.Delay(-1);
 
 enum PacketType
 {
