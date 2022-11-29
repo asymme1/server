@@ -222,7 +222,7 @@ namespace woke3
             server.FindSession(session.P1Turn ? session.P2Id : session.P1Id).Send(b.SelectMany(a => a).ToArray());
             session.P1Turn = !session.P1Turn;
             
-            wsServer?.Multicast(JsonSerializer.Serialize(session.Matrix));
+            wsServer?.MulticastText(JsonSerializer.Serialize(session.Matrix));
             Console.WriteLine("Dispatching board to ws");
         }
         

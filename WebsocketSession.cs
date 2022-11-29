@@ -6,16 +6,10 @@ namespace woke3
     {
         public WebsocketSession(WsServer server) : base(server) {}
 
-        protected override void OnConnected()
+        public override void OnWsConnected(HttpRequest req)
         {
             SendText("welcome");
-            base.OnConnected();
-        }
-
-        public override void OnWsConnected(HttpResponse response)
-        {
-            SendText("welcome");
-            base.OnWsConnected(response);
+            base.OnWsConnected(req);
         }
     }
 }
