@@ -10,20 +10,12 @@ namespace woke3
 
         public GameServer(IPAddress address, int port, int wsPort) : base(address, port)
         {
-            WsServer = new WebsocketServer(address, wsPort);
-        }
-
-        protected override void OnStarted()
-        {
-            if (!WsServer.IsStarted)
-            {
-                WsServer.Start();
-            }
+            //WsServer = new WebsocketServer(address, wsPort);
         }
 
         protected override TcpSession CreateSession()
         {
-            return new GameConnection(this, WsServer);
+            return new GameConnection(this, Session, WsServer);
         }
 
         public bool CreateMatch(int matchId, int uid1, int uid2, string keymatch)

@@ -20,23 +20,7 @@ namespace woke3
         protected override void OnStarted()
         {
             Console.WriteLine($"Started websocket server on port {Port}...");
-        }
-
-        protected override void OnConnecting(TcpSession session)
-        {
-            Console.WriteLine($"New WS connection received : {session.Id}");
-        }
-
-        protected override void OnConnected(TcpSession session)
-        {
-            Console.WriteLine($"New WS connection established : {session.Id}");
-            base.OnConnected(session);
-        }
-
-        protected override void OnDisconnecting(TcpSession session)
-        {
-            Console.WriteLine($"Disconnecting session {session.Id}");
-            base.OnDisconnecting(session);
+            // connect to "ws://104.194.240.14:8080"
         }
     }
 }

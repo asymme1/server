@@ -12,8 +12,9 @@ namespace woke3
         private readonly GameServer server;
         private readonly WsServer? wsServer;
 
-        public GameConnection(GameServer server, WsServer wsServer) : base(server)    
+        public GameConnection(GameServer server, GameSession session, WsServer wsServer) : base(server)
         {
+            this.session = session;
             this.server = server;
             this.wsServer = wsServer;
         }
@@ -68,11 +69,12 @@ namespace woke3
                 case PacketType.PKT_HI:
                 {
                     Console.WriteLine($"{PacketType.PKT_HI} received");
-                    Console.WriteLine($"UID : {Convert.ToHexString(payload[0..4])}");
-                    Console.WriteLine($"Key : {Convert.ToHexString(payload[4..])}");
                     var uid = BitConverter.ToInt32(payload[0..4]);
-                    var keymatch = Encoding.UTF8.GetString(buffer[4..]);
-                    
+                    var keymatch = Encoding.UTF8.GetString(payload[4..]);
+                    Console.WriteLine($"UID : {uid}");
+                    Console.WriteLine($"Key : {keymatch}");
+                    Console.WriteLine($"Current session expected uid and key : {session.Uid1} {session.Uid2} {session.Keymatch}");
+
                     // p1 go first
                     lock (session)
                     {
@@ -81,7 +83,7 @@ namespace woke3
                         List<byte[]> list;
                         if (session.P1Connected)
                         {
-                            if (uid == session.RegisteredUid) break;
+                            //if (uid == session.RegisteredUid) break;
                             list = new List<byte[]>
                             {
                                 BitConverter.GetBytes(session.P2),
@@ -116,6 +118,7 @@ namespace woke3
                                 {
                                     Console.WriteLine("Send board to both players");
                                     SendBoard(session.Matrix);
+                                    
                                 }
                             }).Start();
                             //SendBoard(session.Matrix);
@@ -230,7 +233,7 @@ namespace woke3
             server.FindSession(session.P1Turn ? session.P2Id : session.P1Id).Send(b.SelectMany(a => a).ToArray());
             session.P1Turn = !session.P1Turn;
             
-            //wsServer?.MulticastText(JsonSerializer.Serialize(session.Matrix));
+            wsServer?.MulticastText(JsonSerializer.Serialize(session.Matrix));
             Console.WriteLine("Dispatching board to ws");
         }
         
