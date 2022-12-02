@@ -1,5 +1,6 @@
 using System.Collections.Specialized;
 using System.Net;
+using System.Text;
 using System.Text.Json;
 using NetCoreServer;
 
@@ -11,9 +12,9 @@ namespace woke3
         private readonly GameServer server;
         private readonly WsServer? wsServer;
 
-        public GameConnection(GameServer server, GameSession gameSession, WsServer wsServer) : base(server)    
+        public GameConnection(GameServer server, GameSession session, WsServer wsServer) : base(server)
         {
-            session = gameSession;
+            this.session = session;
             this.server = server;
             this.wsServer = wsServer;
         }
@@ -25,6 +26,7 @@ namespace woke3
                 Console.WriteLine("Detect more than 2 clients, disconnecting");
                 SendPacket(PacketType.PKT_END, new byte[] {0}, true);
                 Disconnect();
+                server.Dispose();
             }
         }
         
@@ -32,13 +34,13 @@ namespace woke3
         {
             lock (session)
             {
-                if (session.MatchStarted)
+                if (session.MatchState == MatchState.STARTED)
                 {
-                    session.MatchStarted = false;
+                    session.MatchState = MatchState.END;
                     Console.WriteLine(session.P1Id == Id ? "Player 1 disconnected. Player 2 wins" : "Player 2 disconnected. Player 1 wins");
 
                     SendPacket(PacketType.PKT_END, BitConverter.GetBytes(session.P1Id == Id ? session.P2 : session.P1), true);
-                    server.Session = new GameSession();
+                    //server.Session = new GameSession();
                     Disconnect();
                 }
             }
@@ -67,15 +69,21 @@ namespace woke3
                 case PacketType.PKT_HI:
                 {
                     Console.WriteLine($"{PacketType.PKT_HI} received");
-                    Console.WriteLine($"UID : {Convert.ToHexString(payload[0..4])}");
-                    Console.WriteLine($"Key : {Convert.ToHexString(payload[4..])}");
-                    
+                    var uid = BitConverter.ToInt32(payload[0..4]);
+                    var keymatch = Encoding.UTF8.GetString(payload[4..]);
+                    Console.WriteLine($"UID : {uid}");
+                    Console.WriteLine($"Key : {keymatch}");
+                    Console.WriteLine($"Current session expected uid and key : {session.Uid1} {session.Uid2} {session.Keymatch}");
+
                     // p1 go first
-                    List<byte[]> list;
                     lock (session)
                     {
+                        if (keymatch != session.Keymatch) break;
+                        if (uid != session.Uid1 && uid != session.Uid2) break;
+                        List<byte[]> list;
                         if (session.P1Connected)
                         {
+                            //if (uid == session.RegisteredUid) break;
                             list = new List<byte[]>
                             {
                                 BitConverter.GetBytes(session.P2),
@@ -95,12 +103,13 @@ namespace woke3
                             Console.WriteLine($"Sent {PacketType.PKT_ID} {session.P1} as {nameof(session.P1)}");
                             session.P1Connected = true;
                             session.P1Id = Id;
+                            session.RegisteredUid = uid;
                         }
                         SendPacket(PacketType.PKT_ID, list.SelectMany(a => a).ToArray());
 
                         if (session.P1Connected && session.P2Connected)
                         {
-                            session.MatchStarted = true;
+                            session.MatchState = MatchState.STARTED;
                             // sleep thread for 10 second
                             new Thread(() =>
                             {
@@ -109,6 +118,7 @@ namespace woke3
                                 {
                                     Console.WriteLine("Send board to both players");
                                     SendBoard(session.Matrix);
+                                    
                                 }
                             }).Start();
                             //SendBoard(session.Matrix);
@@ -160,11 +170,12 @@ namespace woke3
                         int winner = session.CheckWinner();
                         if (winner != -1)
                         {
-                            session.MatchStarted = false;
+                            session.MatchState = MatchState.END;
                             Console.WriteLine($"Player {winner} wins");
                             SendPacket(PacketType.PKT_END, BitConverter.GetBytes(winner), true);
-                            server.Session = new GameSession();
+                            //server.Session = new GameSession();
                             Disconnect();
+                            //server.Dispose();
                         }
                         else
                         {
@@ -178,7 +189,7 @@ namespace woke3
                 case PacketType.PKT_SPECIAL_RESET:
                 {
                     Console.WriteLine("Resetting session");
-                    server.Session = new GameSession();
+                    //server.Session = new GameSession();
                     Disconnect();
                     break;
                 }

@@ -4,6 +4,10 @@ namespace woke3
 {
     public class GameSession
     {
+        public readonly int MatchId;
+        public readonly int Uid1;
+        public readonly int Uid2;
+        public readonly string Keymatch;
         public readonly int[,] Matrix;
         public readonly int LengthToWin;
         public readonly int P1 = Random.Shared.Next();
@@ -11,15 +15,22 @@ namespace woke3
         public Guid P1Id { get; set; }
         public Guid P2Id { get; set; }
         public bool P1Turn { get; set; } = true;
+        public int RegisteredUid { get; set; } = -1;
 
         public bool P1Connected { get; set; } = false;
         public bool P2Connected { get; set; } = false;
-        public bool MatchStarted { get; set; } = false;
+        public MatchState MatchState { get; set; } = MatchState.WAITING_FOR_PLAYER;
 
         public const int BannedCell = -2;
 
-        public GameSession()
+        public GameSession(int matchId, int uid1, int uid2, string keymatch)
         {
+            MatchId = matchId;
+            Uid1 = uid1;
+            Uid2 = uid2;
+            Keymatch = keymatch;
+            MatchId = matchId;
+            
             var m = Random.Shared.Next(3, 20);
             var n = Random.Shared.Next(3, 20);
             var rnd = Random.Shared.Next(0, Math.Min(m, n) - 2);
@@ -132,5 +143,11 @@ namespace woke3
 
             return max;
         }
+    }
+    public enum MatchState
+    {
+        WAITING_FOR_PLAYER,
+        STARTED,
+        END,
     }
 }
