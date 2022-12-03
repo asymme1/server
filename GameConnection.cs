@@ -3,6 +3,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using NetCoreServer;
+using Newtonsoft.Json;
 
 namespace woke3
 {
@@ -236,7 +237,13 @@ namespace woke3
             server.FindSession(session.P1Turn ? session.P2Id : session.P1Id).Send(b.SelectMany(a => a).ToArray());
             session.P1Turn = !session.P1Turn;
             
-            wsServer?.MulticastText(JsonSerializer.Serialize(session.Matrix));
+            wsServer?.MulticastText(
+                JsonConvert.SerializeObject(new
+                {
+                    board = session.Matrix,
+                    
+                })
+            );
             Console.WriteLine("Dispatching board to ws");
         }
         

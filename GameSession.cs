@@ -1,5 +1,6 @@
 using System.Collections.Specialized;
 using System.Text.Json.Nodes;
+using Newtonsoft.Json.Linq;
 
 namespace woke3
 {
@@ -146,7 +147,7 @@ namespace woke3
             return max;
         }
         
-        public JsonObject GetInfo()
+        public JObject GetInfo()
         {
             int winner = CheckWinner();
             int score1 = 0;
@@ -164,7 +165,7 @@ namespace woke3
                 else score1 = 1;
             }
 
-            JsonObject info = new JsonObject();
+            JObject info = new ();
             info.Add("status", (int) MatchState);
             info.Add("id1", score1);
             info.Add("id2", score2);

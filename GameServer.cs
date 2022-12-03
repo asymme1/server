@@ -10,7 +10,9 @@ namespace woke3
 
         public GameServer(IPAddress address, int port, int wsPort) : base(address, port)
         {
-            //WsServer = new WebsocketServer(address, wsPort);
+            Session = new GameSession(1, 1, 2, "asasdas");
+            WsServer = new WebsocketServer(address, wsPort);
+            WsServer.Start();
         }
 
         protected override TcpSession CreateSession()

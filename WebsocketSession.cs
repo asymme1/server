@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using NetCoreServer;
+using Newtonsoft.Json.Linq;
 
 namespace woke3
 {
@@ -79,7 +80,7 @@ namespace woke3
             }
         }
 
-        public JsonObject? RequestMatchInfo(int matchId)
+        public JObject? RequestMatchInfo(int matchId)
         {
             for (int i = 0; i < _gameSessions.Count; i++)
                 if (_gameSessions[i].MatchId == matchId)

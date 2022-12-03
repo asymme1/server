@@ -3,6 +3,7 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Newtonsoft.Json.Linq;
 
 namespace woke3;
 
@@ -48,7 +49,7 @@ public class UpdateClient
                 if (action == (int) ActionType.ActUpdateMatch)
                 {
                     int.TryParse(data["match"]?.ToString(), out int match);
-                    JsonObject? matchInfo = _main.RequestMatchInfo(match);
+                    var matchInfo = _main.RequestMatchInfo(match);
                     if (matchInfo == null) continue;
                     await SendMatchUpdate(match, matchInfo);
                 }
@@ -72,13 +73,13 @@ public class UpdateClient
         await Send(data.ToString());
     }
 
-    private async Task SendMatchUpdate(int matchId, JsonObject info)
+    private async Task SendMatchUpdate(int matchId, JObject info)
     {
-        JsonObject data = new JsonObject();
-        data.Add("result", (int) ResultType.UpdateMatch);
-        data.Add("match", matchId);
-        for (int i = 0; i < info.Count; ++i) 
-            data.AsArray().Add(info[i]);
+        var data = new JObject(info)
+        {
+            { "result", (int)ResultType.UpdateMatch },
+            { "match", matchId }
+        };
         await Send(data.ToString());
     } 
 
