@@ -25,6 +25,7 @@ namespace woke3
             {
                 Console.WriteLine("Detect more than 2 clients, disconnecting");
                 SendPacket(PacketType.PKT_END, new byte[] {0}, true);
+                session.MainServer.UpdateClient?.SendEndMatchMessage(session.MatchId);
                 Disconnect();
                 server.Dispose();
             }
@@ -34,9 +35,9 @@ namespace woke3
         {
             lock (session)
             {
-                if (session.MatchState == MatchState.STARTED)
+                if (session.MatchState == MatchState.Started)
                 {
-                    session.MatchState = MatchState.END;
+                    session.MatchState = MatchState.End;
                     Console.WriteLine(session.P1Id == Id ? "Player 1 disconnected. Player 2 wins" : "Player 2 disconnected. Player 1 wins");
 
                     SendPacket(PacketType.PKT_END, BitConverter.GetBytes(session.P1Id == Id ? session.P2 : session.P1), true);
@@ -83,7 +84,7 @@ namespace woke3
                         List<byte[]> list;
                         if (session.P1Connected)
                         {
-                            //if (uid == session.RegisteredUid) break;
+                            if (uid == session.RegisteredUid) break;
                             list = new List<byte[]>
                             {
                                 BitConverter.GetBytes(session.P2),
@@ -109,7 +110,9 @@ namespace woke3
 
                         if (session.P1Connected && session.P2Connected)
                         {
-                            session.MatchState = MatchState.STARTED;
+                            session.MatchState = MatchState.Started;
+                            Console.WriteLine("Both players connected, starting match");
+                            session.MainServer.UpdateClient?.SendStartMatchMessage(session.MatchId);
                             // sleep thread for 10 second
                             new Thread(() =>
                             {
@@ -121,7 +124,6 @@ namespace woke3
                                     
                                 }
                             }).Start();
-                            //SendBoard(session.Matrix);
                         }
                     }
                     break;
@@ -170,12 +172,13 @@ namespace woke3
                         int winner = session.CheckWinner();
                         if (winner != -1)
                         {
-                            session.MatchState = MatchState.END;
+                            session.MatchState = MatchState.End;
                             Console.WriteLine($"Player {winner} wins");
                             SendPacket(PacketType.PKT_END, BitConverter.GetBytes(winner), true);
+                            session.MainServer.UpdateClient?.SendEndMatchMessage(session.MatchId);
                             //server.Session = new GameSession();
                             Disconnect();
-                            //server.Dispose();
+                            server.Dispose();
                         }
                         else
                         {

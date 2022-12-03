@@ -1,9 +1,11 @@
 using System.Collections.Specialized;
+using System.Text.Json.Nodes;
 
 namespace woke3
 {
     public class GameSession
     {
+        public WebsocketSession MainServer;
         public readonly int MatchId;
         public readonly int Uid1;
         public readonly int Uid2;
@@ -19,7 +21,7 @@ namespace woke3
 
         public bool P1Connected { get; set; } = false;
         public bool P2Connected { get; set; } = false;
-        public MatchState MatchState { get; set; } = MatchState.WAITING_FOR_PLAYER;
+        public MatchState MatchState { get; set; } = MatchState.NotStarted;
 
         public const int BannedCell = -2;
 
@@ -143,11 +145,37 @@ namespace woke3
 
             return max;
         }
+        
+        public JsonObject GetInfo()
+        {
+            int winner = CheckWinner();
+            int score1 = 0;
+            int score2 = 0;
+            if (winner <= 0) score1 = score2 = 0;
+
+            if (winner == P1)
+            {
+                if (RegisteredUid == Uid1) score1 = 1;
+                else score2 = 1;
+            }
+            else
+            {
+                if (RegisteredUid == Uid1) score2 = 1;
+                else score1 = 1;
+            }
+
+            JsonObject info = new JsonObject();
+            info.Add("status", (int) MatchState);
+            info.Add("id1", score1);
+            info.Add("id2", score2);
+            return info;
+        }
     }
+
     public enum MatchState
     {
-        WAITING_FOR_PLAYER,
-        STARTED,
-        END,
+        NotStarted = 0,
+        Started,
+        End,
     }
 }
