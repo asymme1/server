@@ -13,11 +13,14 @@ namespace woke3
         private static readonly string WebGameWS = "ws://104.194.240.16";
         private static readonly bool IsDevServer = true;
         private static readonly string ServerAddress = IsDevServer ? "tcp://0.tcp.ap.ngrok.io" : "";
+        public UpdateClient? UpdateClient;
+        private readonly List<GameSession> _gameSessions = new List<GameSession>();
         public WebsocketSession(WsServer server) : base(server) {}
 
         public override void OnWsConnected(HttpRequest req)
         {
             Console.WriteLine($"A new client connected with {Id}.");
+            UpdateClient = new UpdateClient(this);
             base.OnWsConnected(req);
         }
 
@@ -76,25 +79,36 @@ namespace woke3
             }
         }
 
+        public JsonObject? RequestMatchInfo(int matchId)
+        {
+            for (int i = 0; i < _gameSessions.Count; i++)
+                if (_gameSessions[i].MatchId == matchId)
+                    return _gameSessions[i].GetInfo();
+            
+            return null;
+        }
+
         private void CreateAndSendCreateState(int matchId, int uid1, int uid2, string password)
         {
             int validPort = FindNextValidPort();
             var gameServer = new GameServer(IPAddress.Any, validPort, 9000);
             gameServer.Start();
+            _gameSessions.Add(gameServer.Session);
+            gameServer.Session.MainServer = this;
             Console.WriteLine($"New game server started on port {validPort}");
 
             bool state = gameServer.CreateMatch(matchId, uid1, uid2, password);
             JsonObject data = new JsonObject();
             if (state)
             {
-                data.Add("result", 1);
+                data.Add("result", (int) ResultType.CreateMatchSuccess);
                 data.Add("ip", ServerAddress);
                 data.Add("port", validPort);
                 data.Add("path", "/tictactoe");
             }
             else
             {
-                data.Add("result", 0);
+                data.Add("result", (int) ResultType.CreateMatchFail);
             }
 
             Send(data);
@@ -122,7 +136,7 @@ namespace woke3
         ActUpdateMatch,
     }
 
-    enum ResultType
+    public enum ResultType
     {
         CreateMatchFail = 0,
         CreateMatchSuccess = 1,

@@ -20,7 +20,6 @@ namespace woke3
         protected override void OnStarted()
         {
             Console.WriteLine($"Started websocket server on port {Port}...");
-            // connect to "ws://104.194.240.14:8080"
         }
     }
 }
