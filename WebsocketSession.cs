@@ -144,6 +144,7 @@ namespace woke3
             }
             data.Add("board", board);
             data.Add("first", gameSession?.RegisteredUid);
+            data.Add("winner", gameSession?.GetWinner());
             Send(data);
         }
 
