@@ -18,6 +18,7 @@ public class UpdateClient
         _main = main;
         _ws = new ClientWebSocket();
         _ws.ConnectAsync(new Uri(Url), CancellationToken.None);
+        while (!IsConnected()) ;
         Console.WriteLine("Connected with update channel");
         Task.Run(() => Loop());
     }
@@ -35,19 +36,22 @@ public class UpdateClient
                 await _ws.CloseAsync(WebSocketCloseStatus.EndpointUnavailable, "Disconnected", CancellationToken.None);
                 break;
             }
-            string message = Encoding.UTF8.GetString(buffer[0..^1]);
-            Console.WriteLine(message);
+            string message = Encoding.UTF8.GetString(buffer);
+            Console.WriteLine($"Receive message {message}");
             int lastCurlyBrace = message.LastIndexOf('}');
             var tmp = buffer[0..(lastCurlyBrace + 1)];
             JsonObject? data = JsonSerializer.Deserialize<JsonObject>(tmp);
+            Console.WriteLine($"Still connected: {IsConnected()}");
             if (data == null)
                 Console.WriteLine("Failed to deserialize data.");
             else
             {
-                if (data["action"] == null) continue;
+                //if (data["action"] == null) continue;
                 int.TryParse(data["action"]?.ToString(), out int action);
+                Console.WriteLine(action);
                 if (action == (int) ActionType.ActUpdateMatch)
                 {
+                    Console.WriteLine("Request update info from web");
                     int.TryParse(data["match"]?.ToString(), out int match);
                     var matchInfo = _main.RequestMatchInfo(match);
                     if (matchInfo == null) continue;
@@ -59,6 +63,7 @@ public class UpdateClient
     
     public async Task SendStartMatchMessage(int matchId)
     {
+        Console.WriteLine("Sending start match message");
         JsonObject data = new JsonObject();
         data.Add("result", (int) ResultType.MatchStart);
         data.Add("match", matchId);
@@ -67,19 +72,22 @@ public class UpdateClient
     
     public async Task SendEndMatchMessage(int matchId)
     {
+        Console.WriteLine("Sending end match message");
         JsonObject data = new JsonObject();
         data.Add("result", (int) ResultType.MatchEnd);
         data.Add("match", matchId);
         await Send(data.ToString());
     }
 
-    private async Task SendMatchUpdate(int matchId, JObject info)
+    public async Task SendMatchUpdate(int matchId, JObject info)
     {
+        Console.WriteLine("Sending match update");
         var data = new JObject(info)
         {
             { "result", (int)ResultType.UpdateMatch },
             { "match", matchId }
         };
+        Console.WriteLine(data.ToString());
         await Send(data.ToString());
     } 
 

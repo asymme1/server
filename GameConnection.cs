@@ -40,8 +40,22 @@ namespace woke3
                     Console.WriteLine(session.P1Id == Id ? "Player 1 disconnected. Player 2 wins" : "Player 2 disconnected. Player 1 wins");
 
                     SendPacket(PacketType.PKT_END, BitConverter.GetBytes(session.P1Id == Id ? session.P2 : session.P1), true);
-                    //server.Session = new GameSession();
+                    //session.MainServer?.UpdateClient?.SendMatchUpdate(session.MatchId, session.MainServer?.RequestMatchInfo(session.MatchId));
+                    session.MainServer?.UpdateClient?.SendEndMatchMessage(session.MatchId);
                     Disconnect();
+                    server.Dispose();
+                }
+                else
+                {
+                    if (session.P1Id == Id)
+                    {
+                        session.P1Connected = false;
+                        session.RegisteredUid = -1;
+                    }
+                    else if (session.P2Id == Id)
+                    {
+                        session.P2Connected = false;
+                    }
                 }
             }
         }
@@ -186,6 +200,7 @@ namespace woke3
                             session.MatchState = MatchState.End;
                             Console.WriteLine($"Player {winner} wins");
                             SendPacket(PacketType.PKT_END, BitConverter.GetBytes(winner), true);
+                            //session.MainServer?.UpdateClient?.SendMatchUpdate(session.MatchId, session.MainServer?.RequestMatchInfo(session.MatchId));
                             session.MainServer?.UpdateClient?.SendEndMatchMessage(session.MatchId);
                             //server.Session = new GameSession();
                             Disconnect();
