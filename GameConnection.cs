@@ -11,13 +11,11 @@ namespace woke3
     {
         private readonly GameSession session;
         private readonly GameServer server;
-        private readonly WsServer? wsServer;
 
-        public GameConnection(GameServer server, GameSession session, WsServer wsServer) : base(server)
+        public GameConnection(GameServer server, GameSession session) : base(server)
         {
             this.session = session;
             this.server = server;
-            this.wsServer = wsServer;
         }
         
         protected override void OnConnected()
@@ -26,7 +24,7 @@ namespace woke3
             {
                 Console.WriteLine("Detect more than 2 clients, disconnecting");
                 SendPacket(PacketType.PKT_END, new byte[] {0}, true);
-                session.MainServer.UpdateClient?.SendEndMatchMessage(session.MatchId);
+                session.MainServer?.UpdateClient?.SendEndMatchMessage(session.MatchId);
                 Disconnect();
                 server.Dispose();
             }
@@ -80,12 +78,24 @@ namespace woke3
                     // p1 go first
                     lock (session)
                     {
-                        if (keymatch != session.Keymatch) break;
-                        if (uid != session.Uid1 && uid != session.Uid2) break;
+                        if (keymatch != session.Keymatch)
+                        {
+                            Disconnect();
+                            break;
+                        };
+                        if (uid != session.Uid1 && uid != session.Uid2)
+                        {
+                            Disconnect();
+                            break;
+                        }
                         List<byte[]> list;
                         if (session.P1Connected)
                         {
-                            if (uid == session.RegisteredUid) break;
+                            if (uid == session.RegisteredUid)
+                            {
+                                Disconnect();
+                                break;
+                            }
                             list = new List<byte[]>
                             {
                                 BitConverter.GetBytes(session.P2),
@@ -113,7 +123,7 @@ namespace woke3
                         {
                             session.MatchState = MatchState.Started;
                             Console.WriteLine("Both players connected, starting match");
-                            session.MainServer.UpdateClient?.SendStartMatchMessage(session.MatchId);
+                            session.MainServer?.UpdateClient?.SendStartMatchMessage(session.MatchId);
                             // sleep thread for 10 second
                             new Thread(() =>
                             {
@@ -176,7 +186,7 @@ namespace woke3
                             session.MatchState = MatchState.End;
                             Console.WriteLine($"Player {winner} wins");
                             SendPacket(PacketType.PKT_END, BitConverter.GetBytes(winner), true);
-                            session.MainServer.UpdateClient?.SendEndMatchMessage(session.MatchId);
+                            session.MainServer?.UpdateClient?.SendEndMatchMessage(session.MatchId);
                             //server.Session = new GameSession();
                             Disconnect();
                             server.Dispose();
@@ -236,15 +246,6 @@ namespace woke3
             };
             server.FindSession(session.P1Turn ? session.P2Id : session.P1Id).Send(b.SelectMany(a => a).ToArray());
             session.P1Turn = !session.P1Turn;
-            
-            wsServer?.MulticastText(
-                JsonConvert.SerializeObject(new
-                {
-                    board = session.Matrix,
-                    
-                })
-            );
-            Console.WriteLine("Dispatching board to ws");
         }
         
         private void SendError()

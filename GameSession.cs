@@ -6,7 +6,8 @@ namespace woke3
 {
     public class GameSession
     {
-        public WebsocketSession MainServer;
+        public WebsocketServer? MainServer;
+        public int Port;
         public readonly int MatchId;
         public readonly int Uid1;
         public readonly int Uid2;
@@ -18,13 +19,13 @@ namespace woke3
         public Guid P1Id { get; set; }
         public Guid P2Id { get; set; }
         public bool P1Turn { get; set; } = true;
-        public int RegisteredUid { get; set; } = -1;
+        public int RegisteredUid { get; set; } = 0;
 
         public bool P1Connected { get; set; } = false;
         public bool P2Connected { get; set; } = false;
         public MatchState MatchState { get; set; } = MatchState.NotStarted;
 
-        public const int BannedCell = -2;
+        public const int BannedCell = -1;
 
         public GameSession(int matchId, int uid1, int uid2, string keymatch)
         {
@@ -65,7 +66,7 @@ namespace woke3
             bool draw = true;
             for (var i = 0; i < Matrix.GetLength(0); i++)
             {
-                for (var j = 0; j < Matrix.GetLength(1); j++)
+                for (var j = 0; j < Matrix.Length / Matrix.GetLength(0); j++)
                 {
                     if (Matrix[i, j] == 0)
                     {

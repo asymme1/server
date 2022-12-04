@@ -8,7 +8,7 @@ namespace woke3
         public GameSession Session;
         public WebsocketServer WsServer;
 
-        public GameServer(IPAddress address, int port, int wsPort) : base(address, port)
+        public GameServer(IPAddress address, int port) : base(address, port)
         {
             // Session = new GameSession(1, 1, 2, "asasdas");
             // WsServer = new WebsocketServer(address, wsPort);
@@ -17,7 +17,8 @@ namespace woke3
 
         protected override TcpSession CreateSession()
         {
-            return new GameConnection(this, Session, WsServer);
+            Console.WriteLine("New session");
+            return new GameConnection(this, Session);
         }
 
         public bool CreateMatch(int matchId, int uid1, int uid2, string keymatch)
