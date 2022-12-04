@@ -9,11 +9,11 @@ namespace woke3;
 
 public class UpdateClient
 {
-    private readonly WebsocketSession _main;
+    private readonly WebsocketServer _main;
     private ClientWebSocket _ws;
     private readonly string Url = "ws://104.194.240.16/ws/channels/";
     
-    public UpdateClient(WebsocketSession main)
+    public UpdateClient(WebsocketServer main)
     {
         _main = main;
         _ws = new ClientWebSocket();

@@ -1,10 +1,15 @@
 using System.Net;
 using NetCoreServer;
+using Newtonsoft.Json.Linq;
 
 namespace woke3
 {
     public class WebsocketServer : WsServer
     {
+        public static readonly bool IsDevServer = true;
+        public static readonly string ServerAddress = IsDevServer ? "tcp://0.tcp.ap.ngrok.io" : "";
+        public UpdateClient? UpdateClient;
+        public readonly List<GameSession> GameSessions = new List<GameSession>();
         public WebsocketServer(IPAddress address, int port) : base(address, port) {}
 
         protected override TcpSession CreateSession()
@@ -20,6 +25,16 @@ namespace woke3
         protected override void OnStarted()
         {
             Console.WriteLine($"Started websocket server on port {Port}...");
+            UpdateClient = new UpdateClient(this);
+        }
+        
+        public JObject? RequestMatchInfo(int matchId)
+        {
+            for (int i = 0; i < GameSessions.Count; i++)
+                if (GameSessions[i].MatchId == matchId)
+                    return GameSessions[i].GetInfo();
+            
+            return null;
         }
     }
 }

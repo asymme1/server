@@ -5,7 +5,7 @@ using woke3;
 using WebSocket = NetCoreServer.WebSocket;
 
 var SERVER_PORT = 9000;
-var mainServer = new GameServer(IPAddress.Any, 9001, 9000);
+var mainServer = new WebsocketServer(IPAddress.Any, 9000);
 mainServer.Start();
 await Task.Delay(-1);
 
