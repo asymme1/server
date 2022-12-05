@@ -70,6 +70,13 @@ namespace woke3
                         string password = data["passwd"]?.ToString() ?? "Unknown";
                         CreateAndSendCreateState(matchId, uid1, uid2, password);
                         break;
+                    case ActionType.ActUpdateMatch:
+                        int.TryParse(data["match"]?.ToString(), out matchId);
+                        Console.WriteLine("Request update info from web");
+                        var matchInfo = RequestMatchInfo(matchId);
+                        if (matchInfo == null) break;
+                        _server.UpdateClient?.SendMatchUpdate(matchId, matchInfo);
+                        break;
                     case ActionType.ActRequestMatchs:
                         Console.WriteLine("UI Client requested matches");
                         SendAllMatches();
@@ -137,6 +144,7 @@ namespace woke3
             }
             data.Add("board", board);
             data.Add("first", gameSession?.RegisteredUid);
+            data.Add("winner", gameSession?.GetWinner());
             Send(data);
         }
 

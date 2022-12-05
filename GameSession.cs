@@ -172,6 +172,14 @@ namespace woke3
             info.Add("id2", score2);
             return info;
         }
+
+        public int GetWinner()
+        {
+            int id = CheckWinner();
+            if (id == P1) return Uid1;
+            if (id == P2) return Uid2;
+            return id;
+        }
     }
 
     public enum MatchState
