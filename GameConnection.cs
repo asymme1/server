@@ -24,7 +24,7 @@ namespace woke3
             {
                 Console.WriteLine("Detect more than 2 clients, disconnecting");
                 SendPacket(PacketType.PKT_END, new byte[] {0}, true);
-                session.MainServer?.UpdateClient?.SendEndMatchMessage(session.MatchId);
+                server.UpdateClient.SendEndMatchMessage(session.MatchId);
                 Disconnect();
                 server.Dispose();
             }
@@ -38,11 +38,13 @@ namespace woke3
                 {
                     session.MatchState = MatchState.End;
                     Console.WriteLine(session.P1Id == Id ? "Player 1 disconnected. Player 2 wins" : "Player 2 disconnected. Player 1 wins");
-
+                    if (session.P1Id == Id) session.P1Connected = false;
+                    else session.P2Connected = false;
                     SendPacket(PacketType.PKT_END, BitConverter.GetBytes(session.P1Id == Id ? session.P2 : session.P1), true);
-                    //session.MainServer?.UpdateClient?.SendMatchUpdate(session.MatchId, session.MainServer?.RequestMatchInfo(session.MatchId));
-                    session.MainServer?.UpdateClient?.SendEndMatchMessage(session.MatchId);
+                    server.UpdateClient.SendMatchUpdate(server.Session.MatchId, server.Session.GetInfo());
+                    server.UpdateClient.SendEndMatchMessage(session.MatchId);
                     Disconnect();
+                    server.UpdateClient.Close();
                     server.Dispose();
                 }
                 else
@@ -133,11 +135,11 @@ namespace woke3
                         }
                         SendPacket(PacketType.PKT_ID, list.SelectMany(a => a).ToArray());
 
-                        if (session.P1Connected && session.P2Connected)
+                        if (session.P1Connected & session.P2Connected)
                         {
                             session.MatchState = MatchState.Started;
                             Console.WriteLine("Both players connected, starting match");
-                            session.MainServer?.UpdateClient?.SendStartMatchMessage(session.MatchId);
+                            server.UpdateClient.SendStartMatchMessage(session.MatchId);
                             // sleep thread for 10 second
                             new Thread(() =>
                             {
@@ -201,9 +203,11 @@ namespace woke3
                             Console.WriteLine($"Player {winner} wins");
                             SendPacket(PacketType.PKT_END, BitConverter.GetBytes(winner), true);
                             //session.MainServer?.UpdateClient?.SendMatchUpdate(session.MatchId, session.MainServer?.RequestMatchInfo(session.MatchId));
-                            session.MainServer?.UpdateClient?.SendEndMatchMessage(session.MatchId);
+                            server.UpdateClient.SendMatchUpdate(server.Session.MatchId, server.Session.GetInfo());
+                            server.UpdateClient.SendEndMatchMessage(session.MatchId);
                             //server.Session = new GameSession();
                             Disconnect();
+                            server.UpdateClient.Close();
                             server.Dispose();
                         }
                         else
@@ -289,7 +293,10 @@ namespace woke3
             }
             else
             {
-                server.Multicast(final);
+                lock (session)
+                {
+                    server.Multicast(final);
+                }
             }
         }
     }
