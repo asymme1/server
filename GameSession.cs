@@ -150,20 +150,28 @@ namespace woke3
         
         public JObject GetInfo()
         {
-            int winner = CheckWinner();
             int score1 = 0;
             int score2 = 0;
-            if (winner <= 0) score1 = score2 = 0;
-
-            if (winner == P1)
+            if (P1Connected && P2Connected)
             {
-                if (RegisteredUid == Uid1) score1 = 1;
-                else score2 = 1;
+                int winner = CheckWinner();
+                if (winner <= 0) score1 = score2 = 0;
+                else if (winner == P1)
+                {
+                    if (RegisteredUid == Uid1) score1 = 1;
+                    else score2 = 1;
+                }
+                else
+                {
+                    if (RegisteredUid == Uid1) score2 = 1;
+                    else score1 = 1;
+                }
+
             }
             else
             {
-                if (RegisteredUid == Uid1) score2 = 1;
-                else score1 = 1;
+                if (!P2Connected && P1Connected) score1 = 1;
+                else if (!P1Connected && P2Connected) score2 = 1;
             }
 
             JObject info = new ();

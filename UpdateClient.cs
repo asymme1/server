@@ -9,13 +9,13 @@ namespace woke3;
 
 public class UpdateClient
 {
-    private readonly WebsocketServer _main;
+    private readonly GameServer _server;
     private ClientWebSocket _ws;
     private readonly string Url = "ws://104.194.240.16/ws/channels/";
     
-    public UpdateClient(WebsocketServer main)
+    public UpdateClient(GameServer server)
     {
-        _main = main;
+        _server = server;
         _ws = new ClientWebSocket();
         _ws.ConnectAsync(new Uri(Url), CancellationToken.None);
         while (!IsConnected()) ;
@@ -46,15 +46,14 @@ public class UpdateClient
                 Console.WriteLine("Failed to deserialize data.");
             else
             {
-                //if (data["action"] == null) continue;
+                if (data["action"] == null) continue;
                 int.TryParse(data["action"]?.ToString(), out int action);
                 Console.WriteLine(action);
                 if (action == (int) ActionType.ActUpdateMatch)
                 {
                     Console.WriteLine("Request update info from web");
                     int.TryParse(data["match"]?.ToString(), out int match);
-                    var matchInfo = _main.RequestMatchInfo(match);
-                    if (matchInfo == null) continue;
+                    var matchInfo = _server.Session.GetInfo();
                     await SendMatchUpdate(match, matchInfo);
                 }
             }
@@ -68,7 +67,21 @@ public class UpdateClient
         data.Add("result", (int) ResultType.MatchStart);
         data.Add("match", matchId);
         await Send(data.ToString());
+
+        Task.Run(() => LoopingSendMatchUpdate());
     }
+
+
+    public async Task LoopingSendMatchUpdate()
+    {
+        while (_server.Session.MatchState == MatchState.Started)
+        {
+            var matchInfo = _server.Session.GetInfo();
+            await SendMatchUpdate(_server.Session.MatchId, matchInfo);
+            await Task.Delay(2000);
+        }
+    }
+    
     
     public async Task SendEndMatchMessage(int matchId)
     {
@@ -81,7 +94,7 @@ public class UpdateClient
 
     public async Task SendMatchUpdate(int matchId, JObject info)
     {
-        Console.WriteLine("Sending match update");
+        Console.WriteLine($"Sending match update from game server on port {_server.Port}");
         var data = new JObject(info)
         {
             { "result", (int)ResultType.UpdateMatch },
@@ -89,7 +102,13 @@ public class UpdateClient
         };
         Console.WriteLine(data.ToString());
         await Send(data.ToString());
-    } 
+    }
+
+    public void Close()
+    {
+        _ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Match has ended", CancellationToken.None);
+        Console.WriteLine("Closed update channel on game server port " + _server.Port);
+    }
 
     private async Task Send(string message)
     {

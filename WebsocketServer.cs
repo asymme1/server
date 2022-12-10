@@ -8,7 +8,6 @@ namespace woke3
     {
         public static readonly bool IsDevServer = true;
         public static readonly string ServerAddress = IsDevServer ? "tcp://0.tcp.ap.ngrok.io" : "";
-        public UpdateClient? UpdateClient;
         public readonly List<GameSession> GameSessions = new List<GameSession>();
         public WebsocketServer(IPAddress address, int port) : base(address, port) {}
 
@@ -25,7 +24,6 @@ namespace woke3
         protected override void OnStarted()
         {
             Console.WriteLine($"Started websocket server on port {Port}...");
-            UpdateClient = new UpdateClient(this);
         }
         
         public JObject? RequestMatchInfo(int matchId)
