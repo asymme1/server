@@ -171,8 +171,16 @@ namespace woke3
             }
             else
             {
-                if (!P2Connected && P1Connected) score1 = 1;
-                else if (!P1Connected && P2Connected) score2 = 1;
+                if (!P2Connected && P1Connected)
+                {
+                    if (RegisteredUid == Uid1) score1 = 1;
+                    else score2 = 1;
+                }
+                else if (!P1Connected && P2Connected)
+                {
+                    if (RegisteredUid == Uid1) score2 = 1;
+                    else score1 = 1;
+                }
             }
             
             if (score1 == 1) WinnerUid = Uid1;
