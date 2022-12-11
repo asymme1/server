@@ -20,6 +20,7 @@ namespace woke3
         public Guid P2Id { get; set; }
         public bool P1Turn { get; set; } = true;
         public int RegisteredUid { get; set; } = 0;
+        public int WinnerUid = -1;
 
         public bool P1Connected { get; set; } = false;
         public bool P2Connected { get; set; } = false;
@@ -150,20 +151,44 @@ namespace woke3
         
         public JObject GetInfo()
         {
-            int winner = CheckWinner();
             int score1 = 0;
             int score2 = 0;
-            if (winner <= 0) score1 = score2 = 0;
-
-            if (winner == P1)
+            if (P1Connected && P2Connected)
             {
-                if (RegisteredUid == Uid1) score1 = 1;
-                else score2 = 1;
+                int winner = CheckWinner();
+                if (winner <= 0) score1 = score2 = 0;
+                else if (winner == P1)
+                {
+                    if (RegisteredUid == Uid1) score1 = 1;
+                    else score2 = 1;
+                }
+                else
+                {
+                    if (RegisteredUid == Uid1) score2 = 1;
+                    else score1 = 1;
+                }
+
             }
             else
             {
-                if (RegisteredUid == Uid1) score2 = 1;
-                else score1 = 1;
+                if (!P2Connected && P1Connected)
+                {
+                    if (RegisteredUid == Uid1) score1 = 1;
+                    else score2 = 1;
+                }
+                else if (!P1Connected && P2Connected)
+                {
+                    if (RegisteredUid == Uid1) score2 = 1;
+                    else score1 = 1;
+                }
+            }
+            
+            if (score1 == 1) WinnerUid = Uid1;
+            else if (score2 == 1) WinnerUid = Uid2;
+            else
+            {
+                if (MatchState == MatchState.End) WinnerUid = 0;
+                else WinnerUid = -1;
             }
 
             JObject info = new ();
@@ -175,10 +200,26 @@ namespace woke3
 
         public int GetWinner()
         {
-            int id = CheckWinner();
-            if (id == P1) return Uid1;
-            if (id == P2) return Uid2;
-            return id;
+            if (MatchState == MatchState.End)
+            {
+                return WinnerUid;
+            }
+            
+            if (P1Connected && P2Connected)
+            {
+                int winner = CheckWinner();
+                if (winner <= 0) return winner;
+                
+                if (winner == P1)
+                {
+                    if (RegisteredUid == Uid1) return Uid1;
+                    return Uid2;
+                }
+                if (RegisteredUid == Uid1) return Uid2;
+                return Uid1;
+            }
+
+            return -1;
         }
     }
 

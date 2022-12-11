@@ -40,17 +40,11 @@ namespace woke3
 
         private void OnReceivedInternal(byte[] buffer)
         {
-            var option = new JsonSerializerOptions()
-            {
-                ReadCommentHandling = JsonCommentHandling.Skip,
-                AllowTrailingCommas = true,
-            };
-            string message = Encoding.UTF8.GetString(buffer[0..^1]);
+            string message = Encoding.UTF8.GetString(buffer);
             Console.WriteLine(message);
             int lastCurlyBrace = message.LastIndexOf('}');
             var tmp = buffer[0..(lastCurlyBrace + 1)];
-            var tmp2 = Encoding.ASCII.GetString(buffer);
-            JsonObject? data = JsonSerializer.Deserialize<JsonObject>(tmp, option);
+            JsonObject? data = JsonSerializer.Deserialize<JsonObject>(tmp);
             // check if data is null
             if (data == null)
             {
@@ -69,13 +63,6 @@ namespace woke3
                         int.TryParse(data["id2"]?.ToString(), out int uid2);
                         string password = data["passwd"]?.ToString() ?? "Unknown";
                         CreateAndSendCreateState(matchId, uid1, uid2, password);
-                        break;
-                    case ActionType.ActUpdateMatch:
-                        int.TryParse(data["match"]?.ToString(), out matchId);
-                        Console.WriteLine("Request update info from web");
-                        var matchInfo = RequestMatchInfo(matchId);
-                        if (matchInfo == null) break;
-                        _server.UpdateClient?.SendMatchUpdate(matchId, matchInfo);
                         break;
                     case ActionType.ActRequestMatchs:
                         Console.WriteLine("UI Client requested matches");

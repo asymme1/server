@@ -6,18 +6,18 @@ namespace woke3
     public class GameServer : TcpServer
     {
         public GameSession Session;
-        public WebsocketServer WsServer;
+        public readonly UpdateClient UpdateClient;
 
         public GameServer(IPAddress address, int port) : base(address, port)
         {
             // Session = new GameSession(1, 1, 2, "asasdas");
             // WsServer = new WebsocketServer(address, wsPort);
             // WsServer.Start();
+            UpdateClient = new UpdateClient(this);
         }
 
         protected override TcpSession CreateSession()
         {
-            Console.WriteLine("New session");
             return new GameConnection(this, Session);
         }
 
@@ -25,6 +25,12 @@ namespace woke3
         {
             Session = new GameSession(matchId, uid1, uid2, keymatch);
             return true;
+        }
+
+        protected override void OnStopped()
+        {
+            Console.WriteLine($"Game server on port {Port} stopped!");
+            base.OnStopped();
         }
     }
 }
